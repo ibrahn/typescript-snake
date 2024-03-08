@@ -4,12 +4,16 @@
     <meta charset="utf-8" />
     <title>Snake! 🐍</title>
     <style>
+html {
+  background-color: #111;
+  color: #ccc;
+}
 p {
   margin: 0;
   text-align: center;
 }
 canvas {
-  margin: auto;
+  margin: 0.4em auto;
   display: block;
 }
     </style>
@@ -17,7 +21,9 @@ canvas {
   <body>
     <canvas id="snakeCanvas"></canvas>
     <p id="instructions" hidden>
-    Space to start. Arrow keys to change direction.
+    <b>Space</b> - start.
+    <b>Arrows</b> - turn snake.
+    <b>C</b> - change colours.
     </p>
   </body>
 </html>

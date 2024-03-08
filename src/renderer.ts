@@ -8,28 +8,43 @@ const colorTexData = new Uint8Array([
     0xff, 0xff, 0xff, // wall
 ]);
 
+// vec4 position, vec2 texCoord
 const vertData = new Float32Array([
-    -1.0,  1.0, 0.0, 1.0,
-    -1.0, -1.0, 0.0, 1.0,
-     1.0,  1.0, 0.0, 1.0,
-     1.0, -1.0, 0.0, 1.0,
+    -1.0,  1.0, 0.0, 1.0, 0.0, 0.0,
+    -1.0, -1.0, 0.0, 1.0, 0.0, 1.0,
+     1.0,  1.0, 0.0, 1.0, 1.0, 0.0,
+     1.0, -1.0, 0.0, 1.0, 1.0, 1.0,
 ]);
+const vertDataStride = 4 * 6;
 
 const vertexShaderSource = `#version 300 es
     in vec4 position;
+    in vec2 texCoord;
+
+    out vec2 fragTexCoord;
 
     void main() {
         gl_Position = position;
+        fragTexCoord = texCoord;
     }
 `;
 
 const fragmentShaderSource = `#version 300 es
     precision highp float;
+    precision highp usampler2D;
+
+    uniform usampler2D fieldTexture;
+    uniform sampler2D colorTexture;
+    uniform float colorScheme;
+
+    in vec2 fragTexCoord;
 
     out vec4 outColor;
 
     void main() {
-        outColor = vec4(1.0, 0.0, 0.6, 1.0);
+        float field = float(texture(fieldTexture, fragTexCoord).r);
+        vec2 lookupCoord = vec2(field / 255.0 + 0.125, colorScheme);
+        outColor = vec4(texture(colorTexture, lookupCoord, 1.0));
     }
 `;
 
@@ -65,6 +80,12 @@ function initShaderProgram(ctx: WebGL2RenderingContext,
     return program;
 }
 
+type UniformLocations = {
+    colorScheme: WebGLUniformLocation;
+    fieldTexture: WebGLUniformLocation;
+    colorTexture: WebGLUniformLocation;
+};
+
 /**
  * Draws a game Field to a canvas.
  */
@@ -75,7 +96,7 @@ class Renderer {
     private colorTexture: WebGLTexture;
     private shaderProgram: WebGLShader;
     private colorSchemeIndex: number = 0;
-    private colorSchemeUniformLoc: WebGLUniformLocation;
+    private uniformLoc: UniformLocations;
     private readonly colorSchemeCount: number;
 
     /**
@@ -84,21 +105,41 @@ class Renderer {
     constructor(canvas: HTMLCanvasElement) {
         const ctx = this.glContext = canvas.getContext('webgl2');
         this.vao = ctx.createVertexArray();
-        this.fieldTexture = ctx.createTexture();
-        this.colorTexture = ctx.createTexture();
-        this.colorSchemeCount = colorTexData.length / 4;
+        this.colorSchemeCount = colorTexData.length / 12;
 
+        this.fieldTexture = ctx.createTexture();
+        ctx.bindTexture(ctx.TEXTURE_2D, this.fieldTexture);
+        ctx.texParameteri(ctx.TEXTURE_2D,
+            ctx.TEXTURE_WRAP_S, ctx.CLAMP_TO_EDGE);
+        ctx.texParameteri(ctx.TEXTURE_2D,
+            ctx.TEXTURE_WRAP_T, ctx.CLAMP_TO_EDGE);
+        ctx.texParameteri(ctx.TEXTURE_2D,
+            ctx.TEXTURE_MIN_FILTER, ctx.NEAREST);
+        ctx.texParameteri(ctx.TEXTURE_2D,
+            ctx.TEXTURE_MAG_FILTER, ctx.NEAREST);
+
+        this.colorTexture = ctx.createTexture();
         ctx.bindTexture(ctx.TEXTURE_2D, this.colorTexture);
-        ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.R8UI,
+        ctx.texParameteri(ctx.TEXTURE_2D,
+            ctx.TEXTURE_MIN_FILTER, ctx.LINEAR);
+        ctx.texParameteri(ctx.TEXTURE_2D,
+            ctx.TEXTURE_MAG_FILTER, ctx.LINEAR);
+        ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGB8,
             4, this.colorSchemeCount, 0,
-            ctx.RED_INTEGER, ctx.UNSIGNED_BYTE,
+            ctx.RGB, ctx.UNSIGNED_BYTE,
             colorTexData);
         ctx.bindTexture(ctx.TEXTURE_2D, null);
 
         this.shaderProgram = initShaderProgram(ctx, vertexShaderSource,
             fragmentShaderSource);
-        this.colorSchemeUniformLoc =
-            ctx.getUniformLocation(this.shaderProgram, 'colorScheme');
+        this.uniformLoc = {
+            colorScheme: ctx.getUniformLocation(this.shaderProgram,
+                                                'colorScheme'),
+            fieldTexture: ctx.getUniformLocation(this.shaderProgram,
+                                                'fieldTexture'),
+            colorTexture: ctx.getUniformLocation(this.shaderProgram,
+                                                'colorTexture'),
+        };
 
         ctx.bindVertexArray(this.vao);
         const posBuffer = ctx.createBuffer();
@@ -111,10 +152,21 @@ class Renderer {
             4,                      // component count
             ctx.FLOAT,              // type
             false,                  // normalize
-            0,                      // stride (0 for tightly packed)
+            vertDataStride,         // stride
             0,                      // offset
             );
         ctx.enableVertexAttribArray(positionAttribLocation);
+        const texCoordAttribLocation =
+            ctx.getAttribLocation(this.shaderProgram, 'texCoord');
+        ctx.vertexAttribPointer(
+            texCoordAttribLocation, // location
+            2,                      // component count
+            ctx.FLOAT,              // type
+            false,                  // normalize
+            vertDataStride,         // stride
+            4 * 4,                  // offset
+            );
+        ctx.enableVertexAttribArray(texCoordAttribLocation);
         ctx.bindVertexArray(null);
     }
 
@@ -152,8 +204,16 @@ class Renderer {
 
         ctx.useProgram(this.shaderProgram);
         ctx.bindVertexArray(this.vao);
-        ctx.uniform1i(this.colorSchemeUniformLoc, this.colorSchemeIndex);
+        // Colour scheme index converted to a texture space dimension.
+        ctx.uniform1f(this.uniformLoc.colorScheme,
+            (this.colorSchemeIndex + 0.5) / this.colorSchemeCount);
         // TODO: bind textures
+        ctx.uniform1i(this.uniformLoc.colorTexture, 0);
+        ctx.activeTexture(ctx.TEXTURE0);
+        ctx.bindTexture(ctx.TEXTURE_2D, this.colorTexture);
+        ctx.uniform1i(this.uniformLoc.fieldTexture, 1);
+        ctx.activeTexture(ctx.TEXTURE1);
+        ctx.bindTexture(ctx.TEXTURE_2D, this.fieldTexture);
         ctx.drawArrays(ctx.TRIANGLE_STRIP, 0, 4);
 
         ctx.bindVertexArray(null);

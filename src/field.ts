@@ -19,6 +19,7 @@ class Field {
         this.data = new Uint8Array(Field.width * Field.height);
         // set some test data
         const d = this.data;
+        this.data.fill(0);
         d[4] = Field.elements.snakeBody;
         d[5] = Field.elements.snakeHead;
         d[16] = Field.elements.wall;
