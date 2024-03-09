@@ -23,8 +23,8 @@ window.addEventListener('load', (): void => {
         const canvasResized = resizeCanvasIfReq();
         if (fieldChanged || canvasResized) {
             renderer.update(field);
-            renderer.drawFrame();
         }
+        renderer.drawFrame();
     }
 
     function updateCanvasSize(): void {
@@ -51,6 +51,7 @@ window.addEventListener('load', (): void => {
         ' ': (e: KeyboardEvent) => {
             if (!e.repeat) { field.startGame(); }
         },
+        'c': (e: KeyboardEvent) => renderer.nextColorScheme(),
     }
 
     // input handling
