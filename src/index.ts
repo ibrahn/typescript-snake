@@ -42,6 +42,24 @@ window.addEventListener('load', (): void => {
     }
     updateCanvasSize();
 
+    type inputCallback = (e: KeyboardEvent) => void;
+    const inputMap: Record<string, inputCallback> = {
+        ArrowLeft: (e: KeyboardEvent) => field.turnSnake('left'),
+        ArrowRight: (e: KeyboardEvent) => field.turnSnake('right'),
+        ArrowUp: (e: KeyboardEvent) => field.turnSnake('up'),
+        ArrowDown: (e: KeyboardEvent) => field.turnSnake('down'),
+        ' ': (e: KeyboardEvent) => {
+            if (!e.repeat) { field.startGame(); }
+        },
+    }
+
+    // input handling
+    canvas.addEventListener('keydown', e => {
+        if (e.key in inputMap) {
+            inputMap[e.key](e);
+            e.preventDefault();
+        }
+    });
 
     document.getElementById('instructions').hidden = false;
     window.addEventListener('resize', updateCanvasSize);
