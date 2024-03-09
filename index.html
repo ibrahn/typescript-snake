@@ -15,11 +15,16 @@ p {
 canvas {
   margin: 0.4em auto;
   display: block;
+  /* give hint when canvas not focussed*/
+  outline: 0.4em dotted darkred;
+}
+canvas:focus {
+  outline: none;
 }
     </style>
   </head>
   <body>
-    <canvas id="snakeCanvas" autofocus></canvas>
+    <canvas id="snakeCanvas" tabindex="1" autofocus></canvas>
     <p id="instructions" hidden>
     <b>Space</b> - start.
     <b>Arrows</b> - turn snake.
