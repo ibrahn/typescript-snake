@@ -29,6 +29,12 @@ directions.right.allowedDirections = [directions.up, directions.down];
 directions.up.allowedDirections = [directions.left, directions.right];
 directions.down.allowedDirections = [directions.left, directions.right];
 
+enum GameState {
+    Splash,
+    Playing,
+    GameOver,
+}
+
 /**
  * Manages the play field for the game.
  * All the game pieces live here.
@@ -66,11 +72,13 @@ class Field {
     }
 
     readonly data: Uint8Array;
+    private gameState: GameState;
     private snakeLength: number;
     private snake: Coord[];
     private snakeDirection: Direction;
 
     constructor() {
+        this.gameState = GameState.Splash;
         this.data = new Uint8Array(Field.width * Field.height);
 
         this.initField();
@@ -151,16 +159,20 @@ class Field {
     }
 
     startGame(): void {
-        this.initField();
-        this.snakeLength = Field.snakeStartLength;
-        this.placeSnake([directions.left, directions.right], 4);
+        if (this.gameState != GameState.Playing) {
+            this.initField();
+            this.snakeLength = Field.snakeStartLength;
+            this.placeSnake([directions.left, directions.right], 4);
+        }
     }
 
     turnSnake(directionName: DirectionName): void {
-        const targetDir = directions[directionName];
-        if (this.snakeDirection.allowedDirections.includes(targetDir)) {
-            this.snakeDirection = targetDir;
-            // TODO: take a step
+        if (this.gameState == GameState.Playing) {
+            const targetDir = directions[directionName];
+            if (this.snakeDirection.allowedDirections.includes(targetDir)) {
+                this.snakeDirection = targetDir;
+                // TODO: take a step
+            }
         }
     }
 
@@ -170,7 +182,11 @@ class Field {
      * @returns true if redraw required, otherwise false.
      */
     update(): boolean {
-        // TODO: do the game!
+        switch (this.gameState) {
+            case GameState.Playing:
+                // TODO: do the game!
+                break;
+        }
         return true;
     }
 }
