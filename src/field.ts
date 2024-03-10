@@ -17,6 +17,11 @@ class Field {
         return [x < 0 ? Field.width - x : x, y < 0 ? Field.height - y : y];
     }
 
+    static randomCoord(): Coord {
+        return [Math.trunc(Math.random() * Field.width),
+            Math.trunc(Math.random() * Field.height)];
+    }
+
     private static coordToIndex(x: number, y: number): number {
         [x, y] = Field.wrapCoord(x, y);
         return y * Field.width + x;

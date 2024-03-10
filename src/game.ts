@@ -48,6 +48,7 @@ class Game {
 
     constructor() {
         this.setWalls();
+        this.placeFruit();
         const [startPos, startDir] =
             this.findSnakeStart([directions.left, directions.right], 4);
         this.snake.push(startPos);
@@ -74,6 +75,14 @@ class Game {
         }
     }
 
+    private placeFruit(): void {
+        let fruitCoord: Coord;
+        do {
+            fruitCoord = Field.randomCoord();
+        } while (this.field.getCell(...fruitCoord) != Game.elements.empty);
+        this.field.setCell(...fruitCoord, Game.elements.fruit);
+    }
+
     /**
      * Select a random place and direction for the snake,
      * that will give clearance at the start of the game.
@@ -91,9 +100,8 @@ class Game {
             // pick a random empty square
             let startCoord: Coord;
             do {
-                startCoord = [Math.trunc(Math.random() * Field.width),
-                    Math.trunc(Math.random() * Field.height)]
-            } while (this.field.getCell(...startCoord) != space)
+                startCoord = Field.randomCoord();
+            } while (this.field.getCell(...startCoord) != space);
             // search for direction with required space
             for (const dir of directions) {
                 let nextCoord: Coord = [...startCoord];
