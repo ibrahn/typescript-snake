@@ -1,4 +1,4 @@
-import { Game } from "./game"
+import { Game, GameState } from "./game"
 import { Field } from "./field"
 import { Renderer } from "./renderer"
 
@@ -6,7 +6,7 @@ window.addEventListener('load', (): void => {
     const canvas =
         document.getElementById('snakeCanvas') as HTMLCanvasElement;
     const renderer = new Renderer(canvas);
-    const game = new Game();
+    let game = new Game();
 
     function resizeCanvasIfReq(): boolean {
         const w = canvas.clientWidth;
@@ -20,6 +20,10 @@ window.addEventListener('load', (): void => {
     }
 
     function runFrame(): void {
+        if (game.state == GameState.GameOver) {
+            console.log("Game Over!", game.score);
+            game = new Game();
+        }
         const gameChanged = game.update();
         const canvasResized = resizeCanvasIfReq();
         if (gameChanged || canvasResized) {

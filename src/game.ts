@@ -2,6 +2,11 @@ import { Coord, Field } from "./field";
 
 type DirectionName = 'left' | 'right' | 'up' | 'down';
 
+enum GameState {
+    Running,
+    GameOver,
+}
+
 class Direction {
     readonly x: number;
     readonly y: number;
@@ -11,9 +16,8 @@ class Direction {
         this.y = y;
         this.blockedDirections = [];
     }
-    incrementCoord(coord: Coord) {
-        coord[0] += this.x;
-        coord[1] += this.y;
+    move(coord: Coord): Coord {
+        return [coord[0] + this.x, coord[1] + this.y];
     }
 }
 
@@ -33,9 +37,10 @@ directions.down.blockedDirections = [directions.up];
 class Game {
     private static readonly snakeStartLength = 5;
     private static readonly elements = {
-        empty:      0x00,
+        space:      0x00,
         snakeBody:  0x20,
         snakeHead:  0x40,
+        snakeChomp: 0x60,
         fruit:      0x80,
         wall:       0xd0,
     };
@@ -45,6 +50,7 @@ class Game {
     private readonly snake: Coord[] = [];
     private snakeDirection: Direction;
     private inputQueue: DirectionName[] = [];
+    private gameState: GameState = GameState.Running;
 
     constructor() {
         this.setWalls();
@@ -53,6 +59,7 @@ class Game {
             this.findSnakeStart([directions.left, directions.right], 4);
         this.snake.push(startPos);
         this.snakeDirection = startDir;
+        this.field.setCell(...startPos, Game.elements.snakeHead);
     }
 
     playerInput(directionName: DirectionName): void {
@@ -79,7 +86,7 @@ class Game {
         let fruitCoord: Coord;
         do {
             fruitCoord = Field.randomCoord();
-        } while (this.field.getCell(...fruitCoord) != Game.elements.empty);
+        } while (this.field.getCell(...fruitCoord) != Game.elements.space);
         this.field.setCell(...fruitCoord, Game.elements.fruit);
     }
 
@@ -94,7 +101,7 @@ class Game {
      */
     private findSnakeStart(directions: Direction[], reqSpace: number):
             [Coord, Direction] {
-        const space = Game.elements.empty;
+        const space = Game.elements.space;
         // TODO: possibly shuffle directions here?
         while (true) {
             // pick a random empty square
@@ -107,7 +114,7 @@ class Game {
                 let nextCoord: Coord = [...startCoord];
                 let clearance = 0;
                 for (;clearance < reqSpace; clearance++) {
-                    dir.incrementCoord(nextCoord);
+                    nextCoord = dir.move(nextCoord);
                     if (this.field.getCell(...nextCoord) != space) {
                         break;
                     }
@@ -123,14 +130,24 @@ class Game {
     private snakeStep(): void {
         const field = this.field
         const oldHead = this.snake[0];
-        const newHead: Coord = [...oldHead];
-        this.snakeDirection.incrementCoord(newHead);
+        const newHead = this.snakeDirection.move(oldHead);
+        const target = field.getCell(...newHead);
+        if (target == Game.elements.fruit) {
+            this.snakeLength++;
+            this.placeFruit();
+            field.setCell(...newHead, Game.elements.snakeChomp);
+        } else if (target != Game.elements.space) {
+            // TODO: snake death
+            this.gameState = GameState.GameOver;
+            return;
+        } else {
+            field.setCell(...newHead, Game.elements.snakeHead);
+        }
         this.snake.unshift(newHead);
         field.setCell(...oldHead, Game.elements.snakeBody);
-        field.setCell(...newHead, Game.elements.snakeHead);
         while (this.snake.length > this.snakeLength) {
             const oldTail = this.snake.pop();
-            field.setCell(...oldTail, Game.elements.empty);
+            field.setCell(...oldTail, Game.elements.space);
         }
     }
 
@@ -149,16 +166,28 @@ class Game {
      * @returns true if redraw required, otherwise false.
      */
     update(): boolean {
-        for (const dir of this.inputQueue) {
-            this.turnSnake(dir);
+        switch (this.gameState) {
+            case GameState.Running:
+                for (const dir of this.inputQueue) {
+                    this.turnSnake(dir);
+                }
+                this.inputQueue = [];
+                break;
         }
-        this.inputQueue = [];
         return true;
     }
 
     get displayData(): Uint8Array {
         return this.field.data;
     }
+
+    get score(): number {
+        return this.snakeLength - Game.snakeStartLength;
+    }
+
+    get state(): GameState {
+        return this.gameState;
+    }
 }
 
-export { DirectionName, Game };
+export { DirectionName, Game, GameState };
