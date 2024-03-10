@@ -4,11 +4,11 @@ type DirectionName = 'left' | 'right' | 'up' | 'down';
 class Direction {
     readonly x: number;
     readonly y: number;
-    allowedDirections: Direction[];
+    blockedDirections: Direction[];
     constructor(x: number, y: number) {
         this.x = x;
         this.y = y;
-        this.allowedDirections = [];
+        this.blockedDirections = [];
     }
     incrementCoord(coord: Coord) {
         coord[0] += this.x;
@@ -23,11 +23,11 @@ const directions: Record<DirectionName, Direction> = {
     down: new Direction(0, 1),
 };
 
-// Only allow perpendicular directions. Snake cannot double back.
-directions.left.allowedDirections = [directions.up, directions.down];
-directions.right.allowedDirections = [directions.up, directions.down];
-directions.up.allowedDirections = [directions.left, directions.right];
-directions.down.allowedDirections = [directions.left, directions.right];
+// Do not allow opposite direction. Snake cannot double back.
+directions.left.blockedDirections = [directions.right];
+directions.right.blockedDirections = [directions.left];
+directions.up.blockedDirections = [directions.down];
+directions.down.blockedDirections = [directions.up];
 
 enum GameState {
     Splash,
@@ -72,15 +72,14 @@ class Field {
     }
 
     readonly data: Uint8Array;
-    private gameState: GameState;
+    private gameState: GameState = GameState.Splash;
     private snakeLength: number;
     private snake: Coord[];
     private snakeDirection: Direction;
+    private inputQueue: DirectionName[] = [];
 
     constructor() {
-        this.gameState = GameState.Splash;
         this.data = new Uint8Array(Field.width * Field.height);
-
         this.initField();
 
         // set some test data
@@ -160,7 +159,9 @@ class Field {
 
     startGame(): void {
         if (this.gameState != GameState.Playing) {
+            this.gameState = GameState.Playing;
             this.initField();
+            this.inputQueue = [];
             this.snakeLength = Field.snakeStartLength;
             this.placeSnake([directions.left, directions.right], 4);
         }
@@ -169,11 +170,29 @@ class Field {
     turnSnake(directionName: DirectionName): void {
         if (this.gameState == GameState.Playing) {
             const targetDir = directions[directionName];
-            if (this.snakeDirection.allowedDirections.includes(targetDir)) {
+            const blocked = this.snakeDirection.blockedDirections;
+            if (!blocked.includes(targetDir)) {
                 this.snakeDirection = targetDir;
-                // TODO: take a step
+                this.snakeStep();
             }
         }
+    }
+
+    snakeStep(): void {
+        const oldHead = this.snake[0];
+        const newHead: Coord = [...oldHead];
+        this.snakeDirection.incrementCoord(newHead);
+        this.snake.unshift(newHead);
+        this.setCell(...oldHead, Field.elements.snakeBody);
+        this.setCell(...newHead, Field.elements.snakeHead);
+        while (this.snake.length > this.snakeLength) {
+            const oldTail = this.snake.pop();
+            this.setCell(...oldTail, Field.elements.empty);
+        }
+    }
+
+    playerInput(directionName: DirectionName): void {
+        this.inputQueue.push(directionName);
     }
 
     /**
@@ -184,6 +203,10 @@ class Field {
     update(): boolean {
         switch (this.gameState) {
             case GameState.Playing:
+                let move;
+                while ((move = this.inputQueue.shift()) != undefined) {
+                    this.turnSnake(move);
+                }
                 // TODO: do the game!
                 break;
         }

@@ -44,10 +44,10 @@ window.addEventListener('load', (): void => {
 
     type inputCallback = (e: KeyboardEvent) => void;
     const inputMap: Record<string, inputCallback> = {
-        ArrowLeft: (e: KeyboardEvent) => field.turnSnake('left'),
-        ArrowRight: (e: KeyboardEvent) => field.turnSnake('right'),
-        ArrowUp: (e: KeyboardEvent) => field.turnSnake('up'),
-        ArrowDown: (e: KeyboardEvent) => field.turnSnake('down'),
+        ArrowLeft: (e: KeyboardEvent) => field.playerInput('left'),
+        ArrowRight: (e: KeyboardEvent) => field.playerInput('right'),
+        ArrowUp: (e: KeyboardEvent) => field.playerInput('up'),
+        ArrowDown: (e: KeyboardEvent) => field.playerInput('down'),
         ' ': (e: KeyboardEvent) => {
             if (!e.repeat) { field.startGame(); }
         },
