@@ -1,3 +1,4 @@
+import { Game } from "./game"
 import { Field } from "./field"
 import { Renderer } from "./renderer"
 
@@ -5,7 +6,7 @@ window.addEventListener('load', (): void => {
     const canvas =
         document.getElementById('snakeCanvas') as HTMLCanvasElement;
     const renderer = new Renderer(canvas);
-    const field = new Field();
+    const game = new Game();
 
     function resizeCanvasIfReq(): boolean {
         const w = canvas.clientWidth;
@@ -19,10 +20,10 @@ window.addEventListener('load', (): void => {
     }
 
     function runFrame(): void {
-        const fieldChanged = field.update();
+        const gameChanged = game.update();
         const canvasResized = resizeCanvasIfReq();
-        if (fieldChanged || canvasResized) {
-            renderer.update(field);
+        if (gameChanged || canvasResized) {
+            renderer.update(game.displayData);
         }
         renderer.drawFrame();
     }
@@ -44,13 +45,13 @@ window.addEventListener('load', (): void => {
 
     type inputCallback = (e: KeyboardEvent) => void;
     const inputMap: Record<string, inputCallback> = {
-        ArrowLeft: (e: KeyboardEvent) => field.playerInput('left'),
-        ArrowRight: (e: KeyboardEvent) => field.playerInput('right'),
-        ArrowUp: (e: KeyboardEvent) => field.playerInput('up'),
-        ArrowDown: (e: KeyboardEvent) => field.playerInput('down'),
-        ' ': (e: KeyboardEvent) => {
-            if (!e.repeat) { field.startGame(); }
-        },
+        ArrowLeft: (e: KeyboardEvent) => game.playerInput('left'),
+        ArrowRight: (e: KeyboardEvent) => game.playerInput('right'),
+        ArrowUp: (e: KeyboardEvent) => game.playerInput('up'),
+        ArrowDown: (e: KeyboardEvent) => game.playerInput('down'),
+//        ' ': (e: KeyboardEvent) => {
+//            if (!e.repeat) { game.startGame(); }
+//        },
         'c': (e: KeyboardEvent) => renderer.nextColorScheme(),
     }
 

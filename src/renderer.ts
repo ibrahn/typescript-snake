@@ -187,12 +187,12 @@ class Renderer {
      *
      * @param field - The Field to be drawn from.
      */
-    update(field: Field): void {
+    update(data: Uint8Array): void {
         const ctx = this.glContext;
         ctx.bindTexture(ctx.TEXTURE_2D, this.fieldTexture);
         ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.R8UI,
             Field.width, Field.height, 0,
-            ctx.RED_INTEGER, ctx.UNSIGNED_BYTE, field.data);
+            ctx.RED_INTEGER, ctx.UNSIGNED_BYTE, data);
         ctx.bindTexture(ctx.TEXTURE_2D, null);
     }
 
