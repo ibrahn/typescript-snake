@@ -105,7 +105,12 @@ class Game {
     private findSnakeStart(directions: Direction[], reqSpace: number):
             [Coord, Direction] {
         const space = Game.elements.space;
-        // TODO: possibly shuffle directions here?
+        // shuffle direction options
+        directions = [...directions];
+        for (let i = directions.length; i-- > 0;) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [directions[i], directions[j]] = [directions[j], directions[i]];
+        }
         while (true) {
             // pick a random empty square
             let startCoord: Coord;
