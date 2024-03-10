@@ -19,12 +19,12 @@ window.addEventListener('load', (): void => {
         return false;
     }
 
-    function runFrame(): void {
+    function runFrame(delta: number): void {
         if (game.state == GameState.GameOver) {
             console.log("Game Over!", game.score);
             game = new Game();
         }
-        const gameChanged = game.update();
+        const gameChanged = game.update(delta);
         const canvasResized = resizeCanvasIfReq();
         if (gameChanged || canvasResized) {
             renderer.update(game.displayData);
@@ -70,9 +70,14 @@ window.addEventListener('load', (): void => {
     document.getElementById('instructions').hidden = false;
     window.addEventListener('resize', updateCanvasSize);
 
-    function loop(): void {
-        runFrame();
+    let lastFrame: number = null;
+    function loop(timestamp: DOMHighResTimeStamp): void {
+        if (lastFrame) {
+            const delta = (timestamp - lastFrame) / 1000;
+            runFrame(delta);
+        }
+        lastFrame = timestamp;
         window.requestAnimationFrame(loop);
     }
-    loop();
+    window.requestAnimationFrame(loop);
 });

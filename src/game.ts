@@ -36,6 +36,8 @@ directions.down.blockedDirections = [directions.up];
 
 class Game {
     private static readonly snakeStartLength = 5;
+    private static readonly minAutoStepDelay = 0.1;
+    private static readonly maxAutoStepDelay = 0.6;
     private static readonly elements = {
         space:      0x00,
         snakeBody:  0x20,
@@ -51,6 +53,7 @@ class Game {
     private snakeDirection: Direction;
     private inputQueue: DirectionName[] = [];
     private gameState: GameState = GameState.Running;
+    private autoStepDelay: number = 0;
 
     constructor() {
         this.setWalls();
@@ -127,6 +130,17 @@ class Game {
         }
     }
 
+    private setAutoStepDelay(): void {
+        const minDelay = 0.08;
+        const maxDelay = 0.3;
+        const minLen = 5;
+        const maxLen = 80;
+        const len = Math.max(minLen, Math.min(this.snakeLength, maxLen));
+        const mul = 1 - (len - minLen) / (maxLen - minLen);
+        const delay = (maxDelay - minDelay) * mul + minDelay;
+        this.autoStepDelay = delay;
+    }
+
     private snakeStep(): void {
         const field = this.field
         const oldHead = this.snake[0];
@@ -149,6 +163,7 @@ class Game {
             const oldTail = this.snake.pop();
             field.setCell(...oldTail, Game.elements.space);
         }
+        this.setAutoStepDelay();
     }
 
     private turnSnake(directionName: DirectionName): void {
@@ -163,16 +178,26 @@ class Game {
     /**
      * Updates the game state for a frame.
      *
+     * @param delta - time since last frame, in seconds.
+     *
      * @returns true if redraw required, otherwise false.
      */
-    update(): boolean {
+    update(delta: number): boolean {
         switch (this.gameState) {
             case GameState.Running:
-                for (const dir of this.inputQueue) {
-                    this.turnSnake(dir);
+                let moved = this.inputQueue.length > 0;
+                for (const direction of this.inputQueue) {
+                    this.turnSnake(direction);
                 }
                 this.inputQueue = [];
-                break;
+                if (!moved) {
+                    this.autoStepDelay -= delta;
+                    if (this.autoStepDelay < 0) {
+                        this.snakeStep();
+                        moved = true;
+                    }
+                }
+                return moved;
         }
         return true;
     }
