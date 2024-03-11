@@ -14,7 +14,7 @@ class Field {
     static wrapCoord(x: number, y: number): Coord {
         x %= Field.width;
         y %= Field.height;
-        return [x < 0 ? Field.width - x : x, y < 0 ? Field.height - y : y];
+        return [x < 0 ? Field.width + x : x, y < 0 ? Field.height + y : y];
     }
 
     static randomCoord(): Coord {
@@ -71,4 +71,4 @@ class Field {
     }
 }
 
-export { Coord, Field };
+export { Coord, Field, TextToFieldMapping };
