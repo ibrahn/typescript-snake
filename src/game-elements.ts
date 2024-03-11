@@ -5,6 +5,9 @@ enum GameElements {
     SnakeChomp  = 0x60,
     Fruit       = 0x80,
     Wall        = 0xd0,
+    WallHeavy   = 0xc8,
+    WallMedium  = 0xe2,
+    WallLight   = 0xf4,
 }
 
 export { GameElements };
