@@ -1,11 +1,14 @@
 import { Game, GameState } from "./game"
 import { Field } from "./field"
 import { Renderer } from "./renderer"
+import { SplashScreen } from "./splash"
 
 window.addEventListener('load', (): void => {
     const canvas =
         document.getElementById('snakeCanvas') as HTMLCanvasElement;
     const renderer = new Renderer(canvas);
+    const splash = new SplashScreen();
+    let splashActive = true;
     let game = new Game();
 
     function resizeCanvasIfReq(): boolean {
@@ -20,6 +23,12 @@ window.addEventListener('load', (): void => {
     }
 
     function runFrame(delta: number): void {
+        if (splashActive) {
+            splash.update(delta);
+            renderer.update(splash.displayData);
+            renderer.drawFrame();
+            return;
+        }
         if (game.state == GameState.GameOver) {
             console.log("Game Over!", game.score);
             game = new Game();
@@ -53,9 +62,7 @@ window.addEventListener('load', (): void => {
         ArrowRight: (e: KeyboardEvent) => game.playerInput('right'),
         ArrowUp: (e: KeyboardEvent) => game.playerInput('up'),
         ArrowDown: (e: KeyboardEvent) => game.playerInput('down'),
-//        ' ': (e: KeyboardEvent) => {
-//            if (!e.repeat) { game.startGame(); }
-//        },
+        ' ': (e: KeyboardEvent) => splashActive = false,
         'c': (e: KeyboardEvent) => renderer.nextColorScheme(),
     }
 
