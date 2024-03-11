@@ -140,6 +140,10 @@ class Game {
         if (target == GameElements.Fruit) {
             this.snakeLength++;
             this.placeFruit();
+            // Introduce extra fruit for certain scores.
+            if (this.score == 20 || this.score == 70) {
+                this.placeFruit();
+            }
             field.setCell(...newHead, GameElements.SnakeChomp);
         } else if (target != GameElements.Space) {
             // TODO: snake death
