@@ -1,8 +1,8 @@
 type Coord = [number, number];
-
+type MappingAction = number | (() => number);
+type TextToFieldMapping = Record<string, MappingAction>;
 /**
- * Manages the play field for the game.
- * All the game pieces live here.
+ * Wraps a Uint8Array with 2D indexing.
  */
 class Field {
     static readonly width = 32;
@@ -47,6 +47,27 @@ class Field {
 
     clear(value: number = 0): void {
         this.data.fill(value);
+    }
+
+    /**
+     * Set data from text.
+     *
+     * @param text - source text.
+     * @param mapping - conversion map of characters to cell values.
+     * @param xOffset - horizontal position to paste at.
+     * @param yOffset - vertical position to paste at.
+     */
+    paste(text: string, mapping: TextToFieldMapping,
+            xOffset: number = 0, yOffset: number = 0) {
+        const data = this.data;
+        const lines = text.split('\n');
+        lines.forEach((line, y) => {
+            line.split('').forEach((ch, x) => {
+                const m = mapping[ch];
+                this.setCell(x + xOffset, y + yOffset,
+                    typeof m === 'number' ? m : m());
+            });
+        });
     }
 }
 
