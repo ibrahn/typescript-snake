@@ -169,6 +169,15 @@ class Game extends BaseScreen {
             const oldTail = this.snake.pop();
             field.setCell(...oldTail, GameElements.Space);
         }
+        // fade tail
+        const displayedLength = this.snake.length;
+        const fadeLength = Math.min(6, displayedLength - 2);
+        const fadeIncrement = (GameElements.SnakeBody -
+            GameElements.SnakeTail) / fadeLength;
+        for (let i = 0; i < fadeLength; i++) {
+            field.setCell(...this.snake[displayedLength - i -1],
+                GameElements.SnakeTail + i * fadeIncrement);
+        }
         this.setAutoStepDelay();
     }
 

@@ -1,5 +1,6 @@
 enum GameElements {
     Space       = 0x00,
+    SnakeTail   = 0x0b,
     SnakeBody   = 0x20,
     SnakeHead   = 0x40,
     SnakeChomp  = 0x60,
