@@ -1,4 +1,5 @@
 import { Coord, Field } from "./field";
+import { BaseScreen, ScreenMsg, ScreenMsgType } from "./screen";
 
 const logoSrc = `
 ####..#...#...####..#..##.##
@@ -11,12 +12,12 @@ const logoSrc = `
 `.trim();
 const logoSrcMapping = { '.': 0, '#': 0x88 };
 
-class SplashScreen {
+class SplashScreen extends BaseScreen {
     private readonly logoField = new Field();
-    private readonly displayField = new Field();
     private time = 0;
 
     constructor() {
+        super();
         const logoLines = logoSrc.split('\n');
         // centre logo
         const offsetX = Math.floor((Field.width - logoLines[0].length) / 2);
@@ -46,9 +47,13 @@ class SplashScreen {
     /**
      * @param delta - time since last frame, in seconds.
      *
-     * @returns true if redraw required, otherwise false.
+     * @returns a close ScreenMsg or null
      */
-    update(delta: number): boolean {
+    update(delta: number): ScreenMsg {
+        return super.update(delta) || this.doAnim(delta);
+    }
+
+    private doAnim(delta: number): ScreenMsg {
         const animDuration = 12;
         if (this.time < animDuration) {
             this.time = Math.min(this.time + delta, animDuration);
@@ -75,13 +80,8 @@ class SplashScreen {
             }
             const radius = Math.min(this.time * 1.6 + 4, 16);
             this.illuminateLogo(lightX, lightY, radius);
-            return true;
+            return { msg: ScreenMsgType.redraw };
         }
-        return false;
-    }
-
-    get displayData(): Uint8Array {
-        return this.displayField.data;
     }
 }
 

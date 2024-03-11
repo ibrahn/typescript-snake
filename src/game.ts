@@ -1,4 +1,5 @@
 import { Coord, Field } from "./field";
+import { BaseScreen, ScreenMsg, ScreenMsgType } from "./screen";
 import { GameElements } from "./game-elements";
 import { levelList, levelTextMapping } from "./levels";
 
@@ -36,47 +37,57 @@ directions.right.blockedDirections = [directions.left];
 directions.up.blockedDirections = [directions.down];
 directions.down.blockedDirections = [directions.up];
 
+const directionInput: Record<string, Direction> = {
+    ArrowLeft: directions.left,
+    ArrowRight: directions.right,
+    ArrowUp: directions.up,
+    ArrowDown: directions.down,
+}
+
 /**
  * Runs a round.
  */
-class Game {
+class Game extends BaseScreen {
     private static readonly snakeStartLength = 5;
     private static readonly minAutoStepDelay = 0.1;
     private static readonly maxAutoStepDelay = 0.6;
 
-    private readonly field = new Field();
     private snakeLength = 5;
     private readonly snake: Coord[] = [];
     private snakeDirection: Direction;
-    private inputQueue: DirectionName[] = [];
+    private inputQueue: Direction[] = [];
     private gameState: GameState = GameState.Running;
     private autoStepDelay: number = 0;
 
     constructor() {
+        super();
         this.loadRandomLevel();
         this.placeFruit();
         const [startPos, startDir] =
             this.findSnakeStart([directions.left, directions.right], 4);
         this.snake.push(startPos);
         this.snakeDirection = startDir;
-        this.field.setCell(...startPos, GameElements.SnakeHead);
+        this.displayField.setCell(...startPos, GameElements.SnakeHead);
     }
 
-    playerInput(directionName: DirectionName): void {
-        this.inputQueue.push(directionName);
+    input(e: KeyboardEvent): void {
+        if (e.key in directionInput) {
+            this.inputQueue.push(directionInput[e.key]);
+            e.preventDefault();
+        }
     }
 
     private loadRandomLevel(): void {
         const levelIndex = Math.floor(Math.random() * levelList.length);
-        this.field.paste(levelList[levelIndex], levelTextMapping);
+        this.displayField.paste(levelList[levelIndex], levelTextMapping);
     }
 
     private placeFruit(): void {
         let fruitCoord: Coord;
         do {
             fruitCoord = Field.randomCoord();
-        } while (this.field.getCell(...fruitCoord) != GameElements.Space);
-        this.field.setCell(...fruitCoord, GameElements.Fruit);
+        } while (this.displayField.getCell(...fruitCoord) != GameElements.Space);
+        this.displayField.setCell(...fruitCoord, GameElements.Fruit);
     }
 
     /**
@@ -102,14 +113,14 @@ class Game {
             let startCoord: Coord;
             do {
                 startCoord = Field.randomCoord();
-            } while (this.field.getCell(...startCoord) != space);
+            } while (this.displayField.getCell(...startCoord) != space);
             // search for direction with required space
             for (const dir of directions) {
                 let nextCoord: Coord = [...startCoord];
                 let clearance = 0;
                 for (;clearance < reqSpace; clearance++) {
                     nextCoord = dir.move(nextCoord);
-                    if (this.field.getCell(...nextCoord) != space) {
+                    if (this.displayField.getCell(...nextCoord) != space) {
                         break;
                     }
                 }
@@ -133,7 +144,7 @@ class Game {
     }
 
     private snakeStep(): void {
-        const field = this.field
+        const field = this.displayField;
         const oldHead = this.snake[0];
         const newHead = this.snakeDirection.move(oldHead);
         const target = field.getCell(...newHead);
@@ -161,8 +172,7 @@ class Game {
         this.setAutoStepDelay();
     }
 
-    private turnSnake(directionName: DirectionName): void {
-        const targetDir = directions[directionName];
+    private turnSnake(targetDir: Direction): void {
         const blocked = this.snakeDirection.blockedDirections;
         if (!blocked.includes(targetDir)) {
             this.snakeDirection = targetDir;
@@ -171,13 +181,11 @@ class Game {
     }
 
     /**
-     * Updates the game state for a frame.
-     *
      * @param delta - time since last frame, in seconds.
      *
-     * @returns true if redraw required, otherwise false.
+     * @returns A ScreenMsg if something important happens otherwise null.
      */
-    update(delta: number): boolean {
+    update(delta: number): ScreenMsg {
         switch (this.gameState) {
             case GameState.Running:
                 let moved = this.inputQueue.length > 0;
@@ -192,13 +200,13 @@ class Game {
                         moved = true;
                     }
                 }
-                return moved;
+                if (moved) {
+                    return { msg: ScreenMsgType.redraw };
+                }
+                break;
+            case GameState.GameOver:
+                return { msg: ScreenMsgType.gameover, data: this.score };
         }
-        return true;
-    }
-
-    get displayData(): Uint8Array {
-        return this.field.data;
     }
 
     get score(): number {
