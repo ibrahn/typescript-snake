@@ -1,8 +1,9 @@
+import { GameElements } from "./game-elements";
 import { TextToFieldMapping } from "./field";
 
 const levelTextMapping: TextToFieldMapping = {
-    ' ': 0x00,
-    '#': 0xd0,
+    ' ': GameElements.Space,
+    '#': GameElements.Wall,
 };
 const levelList = [
 
@@ -14,12 +15,12 @@ const levelList = [
 #                              #
 #                              #
 #                              #
-                                
-                                
-                                
-                                
-                                
-                                
+
+
+
+
+
+
 #                              #
 #                              #
 #                              #

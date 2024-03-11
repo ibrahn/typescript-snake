@@ -1,5 +1,6 @@
 import { Coord, Field } from "./field";
-import { levelList, levelTextMapping } from "./levels"
+import { GameElements } from "./game-elements";
+import { levelList, levelTextMapping } from "./levels";
 
 type DirectionName = 'left' | 'right' | 'up' | 'down';
 
@@ -42,14 +43,6 @@ class Game {
     private static readonly snakeStartLength = 5;
     private static readonly minAutoStepDelay = 0.1;
     private static readonly maxAutoStepDelay = 0.6;
-    private static readonly elements = {
-        space:      0x00,
-        snakeBody:  0x20,
-        snakeHead:  0x40,
-        snakeChomp: 0x60,
-        fruit:      0x80,
-        wall:       0xd0,
-    };
 
     private readonly field = new Field();
     private snakeLength = 5;
@@ -66,7 +59,7 @@ class Game {
             this.findSnakeStart([directions.left, directions.right], 4);
         this.snake.push(startPos);
         this.snakeDirection = startDir;
-        this.field.setCell(...startPos, Game.elements.snakeHead);
+        this.field.setCell(...startPos, GameElements.SnakeHead);
     }
 
     playerInput(directionName: DirectionName): void {
@@ -82,8 +75,8 @@ class Game {
         let fruitCoord: Coord;
         do {
             fruitCoord = Field.randomCoord();
-        } while (this.field.getCell(...fruitCoord) != Game.elements.space);
-        this.field.setCell(...fruitCoord, Game.elements.fruit);
+        } while (this.field.getCell(...fruitCoord) != GameElements.Space);
+        this.field.setCell(...fruitCoord, GameElements.Fruit);
     }
 
     /**
@@ -97,7 +90,7 @@ class Game {
      */
     private findSnakeStart(directions: Direction[], reqSpace: number):
             [Coord, Direction] {
-        const space = Game.elements.space;
+        const space = GameElements.Space;
         // shuffle direction options
         directions = [...directions];
         for (let i = directions.length; i-- > 0;) {
@@ -144,22 +137,22 @@ class Game {
         const oldHead = this.snake[0];
         const newHead = this.snakeDirection.move(oldHead);
         const target = field.getCell(...newHead);
-        if (target == Game.elements.fruit) {
+        if (target == GameElements.Fruit) {
             this.snakeLength++;
             this.placeFruit();
-            field.setCell(...newHead, Game.elements.snakeChomp);
-        } else if (target != Game.elements.space) {
+            field.setCell(...newHead, GameElements.SnakeChomp);
+        } else if (target != GameElements.Space) {
             // TODO: snake death
             this.gameState = GameState.GameOver;
             return;
         } else {
-            field.setCell(...newHead, Game.elements.snakeHead);
+            field.setCell(...newHead, GameElements.SnakeHead);
         }
         this.snake.unshift(newHead);
-        field.setCell(...oldHead, Game.elements.snakeBody);
+        field.setCell(...oldHead, GameElements.SnakeBody);
         while (this.snake.length > this.snakeLength) {
             const oldTail = this.snake.pop();
-            field.setCell(...oldTail, Game.elements.space);
+            field.setCell(...oldTail, GameElements.Space);
         }
         this.setAutoStepDelay();
     }
