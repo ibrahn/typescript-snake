@@ -1,17 +1,30 @@
 import { Field } from "./field"
 
+/**
+ * Return the smallest integer multiple of 4 that is greater than or equal
+ * to the passed number.
+ */
+function toMultipleOfFour(n: number): number {
+    n = Math.ceil(n);
+    const r = n % 4;
+    return r ? n + 4 - r : n;
+}
+
 // 8bit per channel RGB.
 const colorTexData = new Uint8Array([
+    // theme 0
     0x00, 0x00, 0x00, // background
     0x00, 0xff, 0x00, // snake
     0xff, 0x00, 0xff, // fruit
     0xff, 0xff, 0xff, // wall
+    // theme 1
     0x10, 0x02, 0x04, // background
     0x00, 0xaa, 0x44, // snake
     0xff, 0x00, 0x00, // fruit
     0xff, 0xcc, 0xcc, // wall
 ]);
 
+// Fullscreen quad.
 // vec4 position, vec2 texCoord
 const vertData = new Float32Array([
     -1.0,  1.0, 0.0, 1.0, 0.0, 0.0,
@@ -33,21 +46,28 @@ const vertexShaderSource = `#version 300 es
     }
 `;
 
+// Add noise to field value for dither.
+// Look up result in colour scheme texture.
 const fragmentShaderSource = `#version 300 es
     precision highp float;
     precision highp usampler2D;
 
     uniform usampler2D fieldTexture;
     uniform sampler2D colorTexture;
+    uniform usampler2D noiseTexture;
     uniform float colorScheme;
+    uniform uint ditherOffset;
 
     in vec2 fragTexCoord;
 
     out vec4 outColor;
 
     void main() {
-        float field = float(texture(fieldTexture, fragTexCoord).r);
-        vec2 lookupCoord = vec2(field / 255.0 + 0.125, colorScheme);
+        uint field = texture(fieldTexture, fragTexCoord).r;
+        uint noise = texture(noiseTexture, fragTexCoord).r;
+        noise = (noise + ditherOffset) / 4u % 64u;
+        float val = float(field + noise) / 255.0;
+        vec2 lookupCoord = vec2(val, colorScheme);
         outColor = vec4(texture(colorTexture, lookupCoord, 1.0));
     }
 `;
@@ -86,8 +106,10 @@ function initShaderProgram(ctx: WebGL2RenderingContext,
 
 type UniformLocations = {
     colorScheme: WebGLUniformLocation;
+    ditherOffset: WebGLUniformLocation;
     fieldTexture: WebGLUniformLocation;
     colorTexture: WebGLUniformLocation;
+    noiseTexture: WebGLUniformLocation;
 };
 
 /**
@@ -97,11 +119,15 @@ class Renderer {
     private glContext: WebGL2RenderingContext;
     private vao: WebGLVertexArrayObject;
     private fieldTexture: WebGLTexture;
+    // Colour lookup texture.
     private colorTexture: WebGLTexture;
+    // Noise for dithering.
+    private noiseTexture: WebGLTexture;
     private shaderProgram: WebGLShader;
     private colorSchemeIndex: number = 0;
     private uniformLoc: UniformLocations;
     private readonly colorSchemeCount: number;
+    private ditherOffset: number = 0;
 
     /**
      * @param canvas - The target canvas to draw on.
@@ -111,6 +137,7 @@ class Renderer {
         this.vao = ctx.createVertexArray();
         this.colorSchemeCount = colorTexData.length / 12;
 
+        // Texture setup.
         this.fieldTexture = ctx.createTexture();
         ctx.bindTexture(ctx.TEXTURE_2D, this.fieldTexture);
         ctx.texParameteri(ctx.TEXTURE_2D,
@@ -125,26 +152,44 @@ class Renderer {
         this.colorTexture = ctx.createTexture();
         ctx.bindTexture(ctx.TEXTURE_2D, this.colorTexture);
         ctx.texParameteri(ctx.TEXTURE_2D,
-            ctx.TEXTURE_MIN_FILTER, ctx.LINEAR);
+            ctx.TEXTURE_MIN_FILTER, ctx.NEAREST);
         ctx.texParameteri(ctx.TEXTURE_2D,
-            ctx.TEXTURE_MAG_FILTER, ctx.LINEAR);
+            ctx.TEXTURE_MAG_FILTER, ctx.NEAREST);
         ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGB8,
             4, this.colorSchemeCount, 0,
             ctx.RGB, ctx.UNSIGNED_BYTE,
             colorTexData);
+
+        this.noiseTexture = ctx.createTexture();
+        ctx.bindTexture(ctx.TEXTURE_2D, this.noiseTexture);
+        ctx.texParameteri(ctx.TEXTURE_2D,
+            ctx.TEXTURE_WRAP_S, ctx.CLAMP_TO_EDGE);
+        ctx.texParameteri(ctx.TEXTURE_2D,
+            ctx.TEXTURE_WRAP_T, ctx.CLAMP_TO_EDGE);
+        ctx.texParameteri(ctx.TEXTURE_2D,
+            ctx.TEXTURE_MIN_FILTER, ctx.NEAREST);
+        ctx.texParameteri(ctx.TEXTURE_2D,
+            ctx.TEXTURE_MAG_FILTER, ctx.NEAREST);
+
         ctx.bindTexture(ctx.TEXTURE_2D, null);
 
+        // Shader loading.
         this.shaderProgram = initShaderProgram(ctx, vertexShaderSource,
             fragmentShaderSource);
         this.uniformLoc = {
             colorScheme: ctx.getUniformLocation(this.shaderProgram,
                                                 'colorScheme'),
+            ditherOffset: ctx.getUniformLocation(this.shaderProgram,
+                                                'ditherOffset'),
             fieldTexture: ctx.getUniformLocation(this.shaderProgram,
                                                 'fieldTexture'),
             colorTexture: ctx.getUniformLocation(this.shaderProgram,
                                                 'colorTexture'),
+            noiseTexture: ctx.getUniformLocation(this.shaderProgram,
+                                                'noiseTexture'),
         };
 
+        // Vertex input binding.
         ctx.bindVertexArray(this.vao);
         const posBuffer = ctx.createBuffer();
         ctx.bindBuffer(ctx.ARRAY_BUFFER, posBuffer);
@@ -172,6 +217,43 @@ class Renderer {
             );
         ctx.enableVertexAttribArray(texCoordAttribLocation);
         ctx.bindVertexArray(null);
+
+        // Force texture generation.
+        this.updateSize(true);
+    }
+
+    /**
+     * Fill texture with 8 bit white noise.
+     */
+    private generateNoiseTexture(width: number, height: number): void {
+        const ctx = this.glContext;
+        ctx.bindTexture(ctx.TEXTURE_2D, this.noiseTexture);
+        // Texture stride needs to be multiple of 4bytes.
+        const size = toMultipleOfFour(width) * height;
+        const data = new Uint8Array(size);
+        for (let i = size; i-- > 0;) {
+            data[i] = Math.floor(Math.random() * 255);
+        }
+        ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.R8UI,
+            width, height, 0,
+            ctx.RED_INTEGER, ctx.UNSIGNED_BYTE, data);
+        ctx.bindTexture(ctx.TEXTURE_2D, null);
+    }
+
+    /**
+     * Check viewport against canvas size and update if required.
+     */
+    private updateSize(force: boolean = false): void {
+        const ctx = this.glContext;
+        const curViewport = ctx.getParameter(ctx.VIEWPORT);
+        const width = ctx.canvas.width;
+        const height = ctx.canvas.height;
+        if (force || width != curViewport[2] || height != curViewport[3]) {
+            ctx.viewport(0, 0, width, height);
+            // TODO: noise size should be chosen for integer cell size.
+            this.generateNoiseTexture(
+                Math.ceil(width / 3), Math.ceil(height / 3));
+        }
     }
 
     /**
@@ -201,7 +283,9 @@ class Renderer {
      */
     drawFrame(): void {
         const ctx = this.glContext;
-        ctx.viewport(0, 0, ctx.canvas.width, ctx.canvas.height);
+        this.updateSize();
+        // TODO: dither offset should increment by delta time
+        this.ditherOffset = (this.ditherOffset + 1) % 256;
 
         ctx.clearColor(0,0,0,0);
         ctx.clear(ctx.COLOR_BUFFER_BIT);
@@ -211,13 +295,19 @@ class Renderer {
         // Colour scheme index converted to a texture space dimension.
         ctx.uniform1f(this.uniformLoc.colorScheme,
             (this.colorSchemeIndex + 0.5) / this.colorSchemeCount);
-        // TODO: bind textures
+        // Dither offset gives us moving dither.
+        ctx.uniform1ui(this.uniformLoc.ditherOffset, this.ditherOffset);
+
+        // Bind textures.
         ctx.uniform1i(this.uniformLoc.colorTexture, 0);
         ctx.activeTexture(ctx.TEXTURE0);
         ctx.bindTexture(ctx.TEXTURE_2D, this.colorTexture);
         ctx.uniform1i(this.uniformLoc.fieldTexture, 1);
         ctx.activeTexture(ctx.TEXTURE1);
         ctx.bindTexture(ctx.TEXTURE_2D, this.fieldTexture);
+        ctx.uniform1i(this.uniformLoc.noiseTexture, 2);
+        ctx.activeTexture(ctx.TEXTURE2);
+        ctx.bindTexture(ctx.TEXTURE_2D, this.noiseTexture);
         ctx.drawArrays(ctx.TRIANGLE_STRIP, 0, 4);
 
         ctx.bindVertexArray(null);
