@@ -1,4 +1,5 @@
 import { Coord, Field } from "./field";
+import { levelList, levelTextMapping } from "./levels"
 
 type DirectionName = 'left' | 'right' | 'up' | 'down';
 
@@ -17,7 +18,7 @@ class Direction {
         this.blockedDirections = [];
     }
     move(coord: Coord): Coord {
-        return [coord[0] + this.x, coord[1] + this.y];
+        return Field.wrapCoord(coord[0] + this.x, coord[1] + this.y);
     }
 }
 
@@ -34,6 +35,9 @@ directions.right.blockedDirections = [directions.left];
 directions.up.blockedDirections = [directions.down];
 directions.down.blockedDirections = [directions.up];
 
+/**
+ * Runs a round.
+ */
 class Game {
     private static readonly snakeStartLength = 5;
     private static readonly minAutoStepDelay = 0.1;
@@ -56,7 +60,7 @@ class Game {
     private autoStepDelay: number = 0;
 
     constructor() {
-        this.setWalls();
+        this.loadRandomLevel();
         this.placeFruit();
         const [startPos, startDir] =
             this.findSnakeStart([directions.left, directions.right], 4);
@@ -69,20 +73,9 @@ class Game {
         this.inputQueue.push(directionName);
     }
 
-    /**
-     * Add walls to the play field.
-     */
-    private setWalls(): void {
-        const wall = Game.elements.wall;
-        const field = this.field;
-        for (let column = Field.width; column-- > 0;) {
-            field.setCell(column, 0, wall);
-            field.setCell(column, Field.height - 1, wall);
-        }
-        for (let row = Field.height - 1; row-- > 1;) {
-            field.setCell(0, row, wall);
-            field.setCell(Field.width - 1, row, wall);
-        }
+    private loadRandomLevel(): void {
+        const levelIndex = Math.floor(Math.random() * levelList.length);
+        this.field.paste(levelList[levelIndex], levelTextMapping);
     }
 
     private placeFruit(): void {
