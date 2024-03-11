@@ -3,6 +3,7 @@ import { TextToFieldMapping } from "./field";
 
 const levelTextMapping: TextToFieldMapping = {
     ' ': GameElements.Space,
+    '.': GameElements.Space,
     '#': GameElements.Wall,
 };
 const levelList = [
@@ -14,14 +15,14 @@ const levelList = [
 #                              #
 #                              #
 #                              #
-#                              #
-
-
-
-
-
-
-#                              #
+#        #            #        #
+         #            #
+         #            #
+         #            #
+         #            #
+         #            #
+         #            #
+#        #            #        #
 #                              #
 #                              #
 #                              #
@@ -29,6 +30,49 @@ const levelList = [
 ############        ############
 `.trim(),
 
+// cage
+`
+####                        ####
+#                              #
+
+
+      #########  #########
+      #                  #
+      #                  #
+      #                  #
+      #                  #
+      #                  #
+      #                  #
+      #                  #
+      ######        ######
+
+
+
+#                              #
+####                        ####
+`.trim(),
+
+// highway
+`
+####                        ####
+#                              #
+#                              #
+#                              #
+#                              #
+#######################       ##
+
+
+
+
+
+
+##       #######################
+#                              #
+#                              #
+#                              #
+#                              #
+####                        ####
+`.trim(),
 
 ];
 
