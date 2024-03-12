@@ -1,7 +1,7 @@
 import { Coord, Field } from "./field";
 import { BaseScreen } from "./screen";
 
-const digitSrcMapping = { '.': 0, '#': 0x38 };
+const digitSrcMapping = { '.': 0, '#': 0x32 };
 const digits = [
 // 0
 `
