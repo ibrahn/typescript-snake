@@ -7,6 +7,7 @@ type DirectionName = 'left' | 'right' | 'up' | 'down';
 
 enum GameState {
     Running,
+    Dying,
     GameOver,
 }
 
@@ -58,6 +59,7 @@ class Game extends BaseScreen {
     private inputQueue: Direction[] = [];
     private gameState: GameState = GameState.Running;
     private autoStepDelay: number = 0;
+    private deathTimer: number = 0;
 
     constructor() {
         super();
@@ -73,6 +75,11 @@ class Game extends BaseScreen {
     input(e: KeyboardEvent): void {
         if (e.key in directionInput) {
             this.inputQueue.push(directionInput[e.key]);
+            e.preventDefault();
+        } else if (e.key == ' ') {
+            if (this.gameState == GameState.Dying) {
+                this.gameState = GameState.GameOver;
+            }
             e.preventDefault();
         }
     }
@@ -157,8 +164,7 @@ class Game extends BaseScreen {
             }
             field.setCell(...newHead, GameElements.SnakeChomp);
         } else if (target != GameElements.Space) {
-            // TODO: snake death
-            this.gameState = GameState.GameOver;
+            this.gameState = GameState.Dying;
             return;
         } else {
             field.setCell(...newHead, GameElements.SnakeHead);
@@ -213,6 +219,22 @@ class Game extends BaseScreen {
                     return { msg: ScreenMsgType.redraw };
                 }
                 break;
+            case GameState.Dying:
+                this.deathTimer += delta;
+                if (this.deathTimer > 0.16) {
+                    this.deathTimer -= 0.16;
+                    const removeCount = Math.ceil(this.snake.length / 10);
+                    for (let i = removeCount; i-- > 0;) {
+                        const coord = this.snake.shift();
+                        this.displayField.setCell(...coord,
+                            GameElements.WallLight);
+                    }
+                    if (!removeCount) {
+                        this.gameState = GameState.GameOver;
+                    }
+                    return { msg: ScreenMsgType.redraw };
+                }
+                break;
             case GameState.GameOver:
                 return { msg: ScreenMsgType.gameover, data: this.score };
         }
@@ -220,10 +242,6 @@ class Game extends BaseScreen {
 
     get score(): number {
         return this.snakeLength - Game.snakeStartLength;
-    }
-
-    get state(): GameState {
-        return this.gameState;
     }
 }
 
