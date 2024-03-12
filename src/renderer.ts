@@ -10,6 +10,9 @@ function toMultipleOfFour(n: number): number {
     return r ? n + 4 - r : n;
 }
 
+// Required pixel count to move up to next scale.
+const scaleBreakPoints = [ 0, 6, 21, 36, Number.MAX_SAFE_INTEGER];
+
 // 8bit per channel RGB.
 const colorTexData = new Uint8Array([
     0x00, 0x00, 0x00, // background
@@ -139,6 +142,25 @@ class Renderer {
     private ditherOffset: number = 0;
 
     /**
+     * Calculate the best fit for canvas in available space.
+     *
+     * @return [width, height, scale]
+     */
+    static bestFit(availableWidth: number, availableHeight: number):
+            [number, number, number] {
+        const widthRatio = availableWidth / Field.width;
+        const heightRatio = availableHeight / Field.height;
+        const maxPixelsPerCell = Math.floor(
+            Math.min(widthRatio, heightRatio));
+        let scale = 0;
+        while (maxPixelsPerCell > scaleBreakPoints[scale]) {
+            scale++;
+        }
+        const cellSize = maxPixelsPerCell - (maxPixelsPerCell % scale);
+        return [Field.width * cellSize, Field.height * cellSize, scale]
+    }
+
+    /**
      * @param canvas - The target canvas to draw on.
      */
     constructor(canvas: HTMLCanvasElement) {
@@ -259,9 +281,9 @@ class Renderer {
         const height = ctx.canvas.height;
         if (force || width != curViewport[2] || height != curViewport[3]) {
             ctx.viewport(0, 0, width, height);
-            // TODO: noise size should be chosen for integer cell size.
+            const noiseScale = Renderer.bestFit(width, height)[2];
             this.generateNoiseTexture(
-                Math.ceil(width / 3), Math.ceil(height / 3));
+                width / noiseScale, height / noiseScale);
         }
     }
 

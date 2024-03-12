@@ -43,15 +43,8 @@ window.addEventListener('load', (): void => {
     function updateCanvasSize(): void {
         const maxWidth = 0.9 * window.innerWidth;
         const maxHeight = 0.9 * window.innerHeight;
-        const widthLimited =
-            maxWidth / Field.width < maxHeight / Field.height;
-        const unit =
-            Math.floor(widthLimited ? maxWidth / Field.width
-                : maxHeight / Field.height);
-        const width = Field.width * unit;
-        const height = Field.height * unit;
-        canvas.width = width;
-        canvas.height = height;
+        [canvas.width, canvas.height] =
+            Renderer.bestFit(maxWidth, maxHeight);
     }
     updateCanvasSize();
 
