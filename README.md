@@ -1,15 +1,15 @@
-# 🚀 Welcome to your new awesome project!
+# Snake 🐍
 
-This project has been created using **webpack-cli**, you can now run
+<p align="center">
+    <img src="screenshot.png" width="512" height="288" alt="Screenshot of the game">
+</p>
 
+A scrappy implementation of Snake, written to try out Typescript.
+
+Run locally with:
 ```
-npm run build
+npm install
+npm run serve
 ```
 
-or
-
-```
-yarn build
-```
-
-to bundle your application
+License: [0BSD](LICENSE)
