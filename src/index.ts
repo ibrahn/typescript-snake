@@ -37,7 +37,7 @@ window.addEventListener('load', (): void => {
         if (screenMsg || canvasResized) {
             renderer.update(currentScreen.displayData);
         }
-        renderer.drawFrame();
+        renderer.drawFrame(delta);
     }
 
     function updateCanvasSize(): void {

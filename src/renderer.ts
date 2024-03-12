@@ -74,11 +74,14 @@ const fragmentShaderSource = `#version 300 es
 
     out vec4 outColor;
 
+    const uint k_ditherBits = 6u;
+    const uint k_ditherMask = (1u << k_ditherBits) - 1u;
+
     void main() {
         uint field = texture(fieldTexture, fragTexCoord).r;
         uint noise = texture(noiseTexture, fragTexCoord).r;
-        noise = (noise + ditherOffset) / 4u % 64u;
-        float val = float(field + noise) / 255.0;
+        uint dither = (noise + ditherOffset) & k_ditherMask;
+        float val = float(field + dither) / 255.0;
         vec2 lookupCoord = vec2(val, colorScheme);
         outColor = vec4(texture(colorTexture, lookupCoord, 1.0));
     }
@@ -139,6 +142,9 @@ class Renderer {
     private colorSchemeIndex: number = 0;
     private uniformLoc: UniformLocations;
     private readonly colorSchemeCount: number;
+    private static readonly ditherIncrement = 45;
+    private static readonly ditherDelay = 0.3;
+    private ditherTimer = 0;
     private ditherOffset: number = 0;
 
     /**
@@ -288,6 +294,18 @@ class Renderer {
     }
 
     /**
+     * Update dither offset.
+     */
+    private ditherRotate(delta: number) {
+        this.ditherTimer -= delta;
+        if (this.ditherTimer < 0 ) {
+            this.ditherTimer = Renderer.ditherDelay;
+            this.ditherOffset =
+                (this.ditherOffset + Renderer.ditherIncrement) % 256;
+        }
+    }
+
+    /**
      * Changes the active colour scheme.
      */
     nextColorScheme(): void {
@@ -312,11 +330,11 @@ class Renderer {
     /**
      * Renders current state onto the canvas.
      */
-    drawFrame(): void {
+    drawFrame(delta: number): void {
         const ctx = this.glContext;
         this.updateSize();
-        // TODO: dither offset should increment by delta time
-        this.ditherOffset = (this.ditherOffset + 0.5) % 256;
+
+        this.ditherRotate(delta);
 
         ctx.clearColor(0,0,0,0);
         ctx.clear(ctx.COLOR_BUFFER_BIT);
