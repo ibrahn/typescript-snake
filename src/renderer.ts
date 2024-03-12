@@ -12,16 +12,25 @@ function toMultipleOfFour(n: number): number {
 
 // 8bit per channel RGB.
 const colorTexData = new Uint8Array([
-    // theme 0
     0x00, 0x00, 0x00, // background
-    0x00, 0xff, 0x00, // snake
-    0xff, 0x00, 0xff, // fruit
+    0x00, 0x97, 0x36, // snake
+    0xee, 0x2a, 0x35, // fruit
     0xff, 0xff, 0xff, // wall
-    // theme 1
-    0x10, 0x02, 0x04, // background
-    0x00, 0xaa, 0x44, // snake
-    0xff, 0x00, 0x00, // fruit
-    0xff, 0xcc, 0xcc, // wall
+    // purple theme
+    0x10, 0x00, 0x00, // background
+    0x60, 0x14, 0x67, // snake
+    0x06, 0x5a, 0x15, // fruit
+    0xb0, 0x90, 0x62, // wall
+    // orange theme
+    0x1b, 0x10, 0x00, // background
+    0xff, 0x40, 0x00, // snake
+    0xff, 0xff, 0xdd, // fruit
+    0x90, 0xd8, 0x32, // wall
+    // light theme
+    0xdd, 0xdd, 0xdd, // background
+    0x00, 0xa0, 0x20, // snake
+    0xff, 0x00, 0x05, // fruit
+    0x10, 0x10, 0x10, // wall
 ]);
 
 // Fullscreen quad.
@@ -285,7 +294,7 @@ class Renderer {
         const ctx = this.glContext;
         this.updateSize();
         // TODO: dither offset should increment by delta time
-        this.ditherOffset = (this.ditherOffset + 1) % 256;
+        this.ditherOffset = (this.ditherOffset + 0.5) % 256;
 
         ctx.clearColor(0,0,0,0);
         ctx.clear(ctx.COLOR_BUFFER_BIT);
@@ -296,7 +305,8 @@ class Renderer {
         ctx.uniform1f(this.uniformLoc.colorScheme,
             (this.colorSchemeIndex + 0.5) / this.colorSchemeCount);
         // Dither offset gives us moving dither.
-        ctx.uniform1ui(this.uniformLoc.ditherOffset, this.ditherOffset);
+        ctx.uniform1ui(this.uniformLoc.ditherOffset,
+            Math.trunc(this.ditherOffset));
 
         // Bind textures.
         ctx.uniform1i(this.uniformLoc.colorTexture, 0);
