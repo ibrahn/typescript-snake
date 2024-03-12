@@ -177,21 +177,11 @@ class Renderer {
         // Texture setup.
         this.fieldTexture = ctx.createTexture();
         ctx.bindTexture(ctx.TEXTURE_2D, this.fieldTexture);
-        ctx.texParameteri(ctx.TEXTURE_2D,
-            ctx.TEXTURE_WRAP_S, ctx.CLAMP_TO_EDGE);
-        ctx.texParameteri(ctx.TEXTURE_2D,
-            ctx.TEXTURE_WRAP_T, ctx.CLAMP_TO_EDGE);
-        ctx.texParameteri(ctx.TEXTURE_2D,
-            ctx.TEXTURE_MIN_FILTER, ctx.NEAREST);
-        ctx.texParameteri(ctx.TEXTURE_2D,
-            ctx.TEXTURE_MAG_FILTER, ctx.NEAREST);
+        this.setTextureParams(ctx.NEAREST, ctx.CLAMP_TO_EDGE);
 
         this.colorTexture = ctx.createTexture();
         ctx.bindTexture(ctx.TEXTURE_2D, this.colorTexture);
-        ctx.texParameteri(ctx.TEXTURE_2D,
-            ctx.TEXTURE_MIN_FILTER, ctx.NEAREST);
-        ctx.texParameteri(ctx.TEXTURE_2D,
-            ctx.TEXTURE_MAG_FILTER, ctx.NEAREST);
+        this.setTextureParams(ctx.NEAREST, ctx.REPEAT);
         ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGB8,
             4, this.colorSchemeCount, 0,
             ctx.RGB, ctx.UNSIGNED_BYTE,
@@ -199,14 +189,7 @@ class Renderer {
 
         this.noiseTexture = ctx.createTexture();
         ctx.bindTexture(ctx.TEXTURE_2D, this.noiseTexture);
-        ctx.texParameteri(ctx.TEXTURE_2D,
-            ctx.TEXTURE_WRAP_S, ctx.CLAMP_TO_EDGE);
-        ctx.texParameteri(ctx.TEXTURE_2D,
-            ctx.TEXTURE_WRAP_T, ctx.CLAMP_TO_EDGE);
-        ctx.texParameteri(ctx.TEXTURE_2D,
-            ctx.TEXTURE_MIN_FILTER, ctx.NEAREST);
-        ctx.texParameteri(ctx.TEXTURE_2D,
-            ctx.TEXTURE_MAG_FILTER, ctx.NEAREST);
+        this.setTextureParams(ctx.NEAREST, ctx.CLAMP_TO_EDGE);
 
         ctx.bindTexture(ctx.TEXTURE_2D, null);
 
@@ -258,6 +241,15 @@ class Renderer {
         // Force texture generation.
         this.updateSize(true);
     }
+
+    private setTextureParams(filter: number, wrap: number): void {
+        const ctx = this.glContext;
+        ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_S, wrap);
+        ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_T, wrap);
+        ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_MIN_FILTER, filter);
+        ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_MAG_FILTER, filter);
+    }
+
 
     /**
      * Fill texture with 8 bit white noise.
