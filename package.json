@@ -1,7 +1,7 @@
 {
   "name": "typescript-snake",
   "version": "0.1.0",
-  "description": "Basic Snake game in Typescript",
+  "description": "Basic Snake game in TypeScript",
   "scripts": {
     "build": "webpack --mode=production --node-env=production",
     "build:dev": "webpack --mode=development",
