@@ -50,7 +50,11 @@ window.addEventListener('load', (): void => {
 
     type inputCallback = (e: KeyboardEvent) => void;
     const inputMap: Record<string, inputCallback> = {
-        'c': (e: KeyboardEvent) => renderer.nextColorScheme(),
+        'c': (e: KeyboardEvent) => {
+            if (!e.repeat) {
+                renderer.nextColorScheme();
+            }
+        },
     }
 
     // input handling

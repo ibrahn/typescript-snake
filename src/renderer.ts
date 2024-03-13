@@ -146,6 +146,7 @@ class Renderer {
     private static readonly ditherDelay = 0.3;
     private ditherTimer = 0;
     private ditherOffset: number = 0;
+    private redrawRequired: boolean = true;
 
     /**
      * Calculate the best fit for canvas in available space.
@@ -282,18 +283,20 @@ class Renderer {
             const noiseScale = Renderer.bestFit(width, height)[2];
             this.generateNoiseTexture(
                 width / noiseScale, height / noiseScale);
+            this.redrawRequired = true;
         }
     }
 
     /**
      * Update dither offset.
      */
-    private ditherRotate(delta: number) {
+    private ditherRotate(delta: number): void {
         this.ditherTimer -= delta;
         if (this.ditherTimer < 0 ) {
             this.ditherTimer = Renderer.ditherDelay;
             this.ditherOffset =
                 (this.ditherOffset + Renderer.ditherIncrement) % 256;
+            this.redrawRequired = true;
         }
     }
 
@@ -303,6 +306,7 @@ class Renderer {
     nextColorScheme(): void {
         this.colorSchemeIndex++;
         this.colorSchemeIndex %= this.colorSchemeCount;
+        this.redrawRequired = true;
     }
 
     /**
@@ -317,16 +321,22 @@ class Renderer {
             Field.width, Field.height, 0,
             ctx.RED_INTEGER, ctx.UNSIGNED_BYTE, data);
         ctx.bindTexture(ctx.TEXTURE_2D, null);
+        this.redrawRequired = true;
     }
 
     /**
      * Renders current state onto the canvas.
      */
     drawFrame(delta: number): void {
-        const ctx = this.glContext;
         this.updateSize();
-
         this.ditherRotate(delta);
+
+        if (!this.redrawRequired) {
+            return;
+        }
+        this.redrawRequired = false;
+
+        const ctx = this.glContext;
 
         ctx.clearColor(0,0,0,0);
         ctx.clear(ctx.COLOR_BUFFER_BIT);
@@ -350,6 +360,7 @@ class Renderer {
         ctx.uniform1i(this.uniformLoc.noiseTexture, 2);
         ctx.activeTexture(ctx.TEXTURE2);
         ctx.bindTexture(ctx.TEXTURE_2D, this.noiseTexture);
+
         ctx.drawArrays(ctx.TRIANGLE_STRIP, 0, 4);
 
         ctx.bindVertexArray(null);
